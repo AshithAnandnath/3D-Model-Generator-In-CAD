@@ -1,0 +1,5 @@
+{
+  "name": "Copy of Complex 3D Model Generator",
+  "description": "Generates complex 3D models from text descriptions by composing geometric primitives. Visualizes the construction process step-by-step.",
+  "requestFramePermissions": []
+}
