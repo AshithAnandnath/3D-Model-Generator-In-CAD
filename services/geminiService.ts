@@ -79,7 +79,7 @@ const normalizeModelData = (model: GeneratedModel): GeneratedModel => {
     const [x, y, z] = part.position;
     // Estimate size based on type to get rough bounds
     let sizeX = 0, sizeY = 0, sizeZ = 0;
-    
+
     // Fallback defaults
     const sx = part.scale?.[0] || 1;
     const sy = part.scale?.[1] || 1;
@@ -138,36 +138,36 @@ const normalizeModelData = (model: GeneratedModel): GeneratedModel => {
     const newScale = [...(part.scale || [1, 1, 1])] as [number, number, number];
 
     switch (part.type) {
-        case ShapeType.BOX:
-            // For box, scale acts as dimensions if geometry is 1x1x1
-            newScale[0] *= scaleFactor;
-            newScale[1] *= scaleFactor;
-            newScale[2] *= scaleFactor;
-            break;
-        case ShapeType.CYLINDER:
-        case ShapeType.CONE:
-            // args: [radTop, radBot, height, seg]
-            if (newArgs[0] !== undefined) newArgs[0] *= scaleFactor;
-            if (newArgs[1] !== undefined) newArgs[1] *= scaleFactor;
-            if (newArgs[2] !== undefined) newArgs[2] *= scaleFactor;
-            break;
-        case ShapeType.SPHERE:
-        case ShapeType.ICOSAHEDRON:
-            // args: [rad]
-            if (newArgs[0] !== undefined) newArgs[0] *= scaleFactor;
-            break;
-        case ShapeType.TORUS:
-            // args: [rad, tube, ...]
-            if (newArgs[0] !== undefined) newArgs[0] *= scaleFactor;
-            if (newArgs[1] !== undefined) newArgs[1] *= scaleFactor;
-            break;
+      case ShapeType.BOX:
+        // For box, scale acts as dimensions if geometry is 1x1x1
+        newScale[0] *= scaleFactor;
+        newScale[1] *= scaleFactor;
+        newScale[2] *= scaleFactor;
+        break;
+      case ShapeType.CYLINDER:
+      case ShapeType.CONE:
+        // args: [radTop, radBot, height, seg]
+        if (newArgs[0] !== undefined) newArgs[0] *= scaleFactor;
+        if (newArgs[1] !== undefined) newArgs[1] *= scaleFactor;
+        if (newArgs[2] !== undefined) newArgs[2] *= scaleFactor;
+        break;
+      case ShapeType.SPHERE:
+      case ShapeType.ICOSAHEDRON:
+        // args: [rad]
+        if (newArgs[0] !== undefined) newArgs[0] *= scaleFactor;
+        break;
+      case ShapeType.TORUS:
+        // args: [rad, tube, ...]
+        if (newArgs[0] !== undefined) newArgs[0] *= scaleFactor;
+        if (newArgs[1] !== undefined) newArgs[1] *= scaleFactor;
+        break;
     }
 
     return {
-        ...part,
-        position: newPos,
-        args: newArgs,
-        scale: newScale
+      ...part,
+      position: newPos,
+      args: newArgs,
+      scale: newScale
     };
   });
 
@@ -178,40 +178,43 @@ const normalizeModelData = (model: GeneratedModel): GeneratedModel => {
  * Robustly attempts to extract JSON from a potentially messy string.
  */
 const cleanAndParseJSON = (text: string): GeneratedModel => {
-    let cleanText = text;
+  let cleanText = text;
 
-    // 1. Try to extract from Markdown code blocks first
-    const codeBlockRegex = /```(?:json)?\s*(\{[\s\S]*?\})\s*```/i;
-    const match = text.match(codeBlockRegex);
-    if (match) {
-        cleanText = match[1];
-    } else {
-        // 2. If no code block, try to find the outermost JSON object
-        const firstOpen = text.indexOf('{');
-        const lastClose = text.lastIndexOf('}');
-        if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
-            cleanText = text.substring(firstOpen, lastClose + 1);
-        }
+  // 1. Try to extract from Markdown code blocks first
+  const codeBlockRegex = /```(?:json)?\s*(\{[\s\S]*?\})\s*```/i;
+  const match = text.match(codeBlockRegex);
+  if (match) {
+    cleanText = match[1];
+  } else {
+    // 2. If no code block, try to find the outermost JSON object
+    const firstOpen = text.indexOf('{');
+    const lastClose = text.lastIndexOf('}');
+    if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
+      cleanText = text.substring(firstOpen, lastClose + 1);
     }
+  }
 
-    // 3. Cleanup common issues
-    // Remove trailing commas which are invalid in JSON but common in LLM output
-    cleanText = cleanText.replace(/,(\s*[}\]])/g, '$1');
+  // 3. Cleanup common issues
+  // Remove trailing commas which are invalid in JSON but common in LLM output
+  cleanText = cleanText.replace(/,(\s*[}\]])/g, '$1');
 
-    try {
-        return JSON.parse(cleanText) as GeneratedModel;
-    } catch (e) {
-        console.error("JSON Parse Error. Raw Text:", text);
-        console.error("Cleaned Text:", cleanText);
-        throw new Error("Could not interpret the model data. The design was too abstract.");
-    }
+  try {
+    return JSON.parse(cleanText) as GeneratedModel;
+  } catch (e) {
+    console.error("JSON Parse Error. Raw Text:", text);
+    console.error("Cleaned Text:", cleanText);
+    throw new Error("Could not interpret the model data. The design was too abstract.");
+  }
 };
 
 export const generate3DModel = async (description: string): Promise<GeneratedModel> => {
   try {
-    const apiKey = process.env.API_KEY;
+    // Safe access to environment variables (Vite uses import.meta.env, but we also support process.env if defined)
+    // @ts-ignore
+    const apiKey = import.meta.env?.VITE_API_KEY || process?.env?.API_KEY || process?.env?.GEMINI_API_KEY;
+
     if (!apiKey) {
-      throw new Error("API Key is missing. Please set process.env.API_KEY.");
+      throw new Error("API Key is missing. Please set VITE_API_KEY in .env file.");
     }
 
     const ai = new GoogleGenAI({ apiKey });
@@ -241,7 +244,7 @@ export const generate3DModel = async (description: string): Promise<GeneratedMod
         systemInstruction,
         responseMimeType: "application/json",
         responseSchema: modelSchema,
-        temperature: 0.3, 
+        temperature: 0.3,
       },
     });
 
